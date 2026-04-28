@@ -129,7 +129,7 @@ class RAGPipeline:
         self.embedder = Embedder()
         self.model_name = "gemini-3.1-flash-lite-preview"
 
-    def retrieve_context(self, query: str, top_k: int = 5) -> str:
+    def retrieve_context(self, query: str, top_k: int = 10) -> str:
         """Retrieve relevant context for a query."""
         hits = self.embedder.search(query, top_k=top_k)
 
@@ -168,7 +168,7 @@ You are a helpful, transparent AI assistant that answers questions about GitLab 
 <answer>
 """
 
-    def ask(self, query: str, top_k: int = 5) -> tuple[str, list[dict]]:
+    def ask(self, query: str, top_k: int = 10) -> tuple[str, list[dict]]:
         """
         Answer a question using RAG.
 

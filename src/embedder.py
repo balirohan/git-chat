@@ -3,7 +3,7 @@ Embedder
 Generates embeddings for chunks and stores in ChromaDB for semantic search.
 
 Also handles:
-- Query embedding and retrieval
+- Query embedding and retrieval (using sentence-transformers)
 - RAG pipeline: retrieve + generate answer
 """
 
@@ -34,7 +34,6 @@ class Embedder:
     """Handles embedding generation, storage, and retrieval."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        # Local embedding model (fast, good quality)
         self.embedding_model = SentenceTransformer(model_name)
 
         # ChromaDB client (persistent storage)
@@ -51,7 +50,7 @@ class Embedder:
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for a list of texts."""
-        embeddings = self.embedding_model.encode(texts, show_progress_bar=True)
+        embeddings = self.embedding_model.encode(texts, show_progress_bar=False)
         return embeddings.tolist()
 
     def add_chunks(self, chunks: list[dict]):

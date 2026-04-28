@@ -81,7 +81,7 @@ if prompt := st.chat_input("Ask about GitLab..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                answer, sources = rag.ask(prompt, top_k=10)
+                answer, sources = rag.ask(prompt, top_k=3)
                 st.markdown(answer)
 
                 if sources:

@@ -9,7 +9,6 @@ Also handles:
 
 import os
 from pathlib import Path
-from typing import Optional
 import json
 import logging
 
@@ -112,16 +111,11 @@ class Embedder:
 
         return hits
 
-    def load_chunks(self, chunks_file: Path = Path("data/chunks.json")) -> list[dict]:
-        """Load chunks from JSON file."""
+    def index_chunks(self, chunks_file: Path = Path("data/chunks.json")):
+        """Load chunks from JSON and add to ChromaDB."""
         with open(chunks_file) as f:
             chunks = json.load(f)
         logger.info(f"Loaded {len(chunks)} chunks from {chunks_file}")
-        return chunks
-
-    def index_chunks(self, chunks_file: Path = Path("data/chunks.json")):
-        """Load chunks and add to ChromaDB."""
-        chunks = self.load_chunks(chunks_file)
         self.add_chunks(chunks)
 
     def is_indexed(self) -> bool:
@@ -134,7 +128,7 @@ class RAGPipeline:
 
     def __init__(self):
         self.embedder = Embedder()
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-3.1-flash-lite-preview"
 
     def retrieve_context(self, query: str, top_k: int = 5) -> str:
         """Retrieve relevant context for a query."""
@@ -149,21 +143,31 @@ class RAGPipeline:
         return "\n\n".join(context_parts)
 
     def generate_prompt(self, query: str, context: str) -> str:
-        """Generate the prompt for Gemini."""
-        return f"""You are a helpful assistant answering questions about GitLab using the provided context.
+        """Generate the prompt for Gemini with XML tags for clear demarcation."""
+        return f"""<system>
+You are a helpful, transparent AI assistant that answers questions about GitLab using ONLY the provided context from the GitLab Handbook and Direction pages.
+</system>
 
-Instructions:
-- Only answer based on the provided context
-- If the context doesn't contain the answer, say so
-- Include the source URL in your response when referencing information
-- Be helpful and concise
+<instructions>
+- You are part of GitLab's "build in public" philosophy — be honest, clear, and transparent
+- Answer based ONLY on the provided context below
+- If the context does not contain enough information to answer the question, say exactly: "I don't have that information in the provided context"
+- Do NOT make up, guess, or add any information not explicitly stated in the context
+- Be helpful, accurate, and concise in your response
+- Do NOT include source URLs or citations in your answer text — sources are displayed separately
+- Use a friendly, informative tone consistent with GitLab's open culture
+</instructions>
 
-Context:
+<context>
 {context}
+</context>
 
-Question: {query}
+<question>
+{query}
+</question>
 
-Answer:"""
+<answer>
+"""
 
     def ask(self, query: str, top_k: int = 5) -> tuple[str, list[dict]]:
         """
@@ -191,32 +195,3 @@ Answer:"""
         return response.text, sources
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    embedder = Embedder()
-
-    # Check if already indexed
-    if embedder.is_indexed():
-        logger.info("Collection already indexed")
-    else:
-        logger.info("Indexing chunks...")
-        embedder.index_chunks()
-        logger.info("Indexing complete!")
-
-    # Test queries
-    test_queries = [
-        "GitLab remote work policy",
-        "how does GitLab handle expenses",
-        "what are GitLab's core values"
-    ]
-
-    for query in test_queries:
-        print(f"\n{'='*60}")
-        print(f"Query: {query}")
-        hits = embedder.search(query, top_k=5)
-
-        for i, hit in enumerate(hits, 1):
-            print(f"\n{i}. [{hit['source']}]")
-            print(f"   Distance: {hit['distance']:.4f}")
-            print(f"   Text: {hit['text'][:150]}...")

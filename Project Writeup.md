@@ -63,6 +63,8 @@ The chatbot is deployed at https://git-chat-joveo.streamlit.app and answers ques
 
 6. **Tracing**: I have used LangFuse in the past and debugging LLM pipelines with it just makes life so much easier.
 
+7. **Feedback**: Storing the user query's + responses in a separate DB (preferably MongoDB) to help track user metrics + incorporate changes/fix errors.
+
 ## New Learnings
 
 - I specifically chose to use ChromaDB, as I never had a chance to use it before.

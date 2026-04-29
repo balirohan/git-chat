@@ -4,11 +4,16 @@ A RAG-powered chatbot that answers questions about GitLab's Handbook and Directi
 
 **Live Demo**: https://git-chat-joveo.streamlit.app
 
+>Note: You may encounter a brief delay during the first load while the environment initializes and dependencies are prepared.
+
 ## Features
 
-- **RAG Pipeline**: Combines semantic search (ChromaDB + sentence-transformers) with Groq (Llama 3.3 70B) for accurate, context-grounded answers. Switched from Gemini due to recent Google AI API outages.
-- **Streamlit UI**: Clean chat interface with follow-up question support and source citations
-- **Scraped Data**: Content from handbook.gitlab.com and about.gitlab.com
+- **RAG Pipeline**: Combines semantic search (ChromaDB + sentence-transformers) with Groq (Llama 3.3 70B) for accurate, context-grounded answers.
+
+  > Switched from Gemini due to recent Google AI API outages - for more details check out: https://aistudio.google.com/status
+- **Streamlit UI**: Clean chat interface with source citations.
+- **Scraped Data**: Content from handbook.gitlab.com (Handbook) and about.gitlab.com (Direction).
+  > scraped content with depth 2 from GitLab Handbook and Direction pages (Base domain + first-level URLs).
 
 ## Prerequisites
 
@@ -84,6 +89,7 @@ data/
 ## How it works
 
 1. **Scraping**: Fetches pages from handbook.gitlab.com (requests) and about.gitlab.com (Playwright for JS-rendered content)
+  > used playwright + chromium for scraping the direction page, as requests was returning nothing.
 2. **Chunking**: Splits content into ~1000-token paragraphs using tiktoken
 3. **Embedding**: Generates embeddings with `all-MiniLM-L6-v2` (sentence-transformers) and stores in ChromaDB
 4. **Retrieval**: On query, embeds the question and retrieves top-k relevant chunks from ChromaDB

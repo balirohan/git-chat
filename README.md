@@ -118,3 +118,5 @@ Note: Set `GROQ_API_KEY` as a secrets environment variable in Streamlit Cloud.
 5. **Testing**: Though I have manually tested this application as much as I could, for a production project I would use RAGAS to evaluate the RAG pipeline methodically.
 
 6. **Tracing**: I have used LangFuse in the past and debugging LLM pipelines with it just makes life so much easier.
+
+7. **Feedback**: Storing the user query's + responses in a separate DB (preferably MongoDB) to help track user metrics + incorporate changes/fix errors.

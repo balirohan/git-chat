@@ -15,7 +15,7 @@ When I first looked at GitLab's handbook, I was overwhelmed by how much informat
 - **Frontend**: Streamlit — chosen for its simplicity and fast iteration time
 - **Vector Store**: ChromaDB — lightweight, easy to set up, good Python support
 - **Embeddings**: `all-MiniLM-L6-v2` via sentence-transformers — fast, 384-dim embeddings that work well for semantic search
-- **LLM**: Gemini 3.1 Flash Lite via Google AI API — cost-effective and fast for generation
+- **LLM**: Groq (Llama 3.3 70B) — Migrated from Gemini due to significant API outages with Google AI Studio in early 2026. Groq offers superior latency and reliability.
 - **Scraping**: BeautifulSoup (requests) for static pages, Playwright for JS-rendered content
 
 ### How it Works
@@ -30,9 +30,11 @@ The pipeline has 5 stages:
 
 4. **Retrieval**: When a user asks a question, it gets embedded and the top-k most similar chunks are retrieved from ChromaDB.
 
-5. **Generation**: Retrieved chunks (with source URLs) are sent to Gemini with a system prompt instructing it to answer only from the provided context and to not hallucinate.
+5. **Generation**: Retrieved chunks (with source URLs) are sent to Groq with a system prompt instructing it to answer only from the provided context and to not hallucinate.
 
 ### Key Decisions
+
+**Groq over Gemini**: Initially, Gemini 3.1 Flash was used. However, due to significant stability issues and API outages with Google AI Studio in early 2026, the project was migrated to Groq. Groq provides significantly lower latency and higher reliability for the RAG pipeline.
 
 **RAG over fine-tuning**: Instead of fine-tuning a model on GitLab's handbook (expensive, requires GPU, hard to update), RAG was chosen. It's more transparent — sources are always shown — and the knowledge base can be updated by re-scraping.
 

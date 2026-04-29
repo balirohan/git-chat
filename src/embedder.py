@@ -244,6 +244,9 @@ Examples:
         )
         answer = response.choices[0].message.content
 
+        # Return empty list for sources as we rely on the LLM to provide 
+        # accurate inline citations (source URLs) which are more precise 
+        # than just returning the retrieved chunks metadata.
         return answer, []
 
 

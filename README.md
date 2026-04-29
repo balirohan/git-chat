@@ -6,14 +6,14 @@ A RAG-powered chatbot that answers questions about GitLab's Handbook and Directi
 
 ## Features
 
-- **RAG Pipeline**: Combines semantic search (ChromaDB + sentence-transformers) with Gemini for accurate, context-grounded answers
+- **RAG Pipeline**: Combines semantic search (ChromaDB + sentence-transformers) with Groq (Llama 3.3 70B) for accurate, context-grounded answers. Switched from Gemini due to recent Google AI API outages.
 - **Streamlit UI**: Clean chat interface with follow-up question support and source citations
 - **Scraped Data**: Content from handbook.gitlab.com and about.gitlab.com
 
 ## Prerequisites
 
 - Python 3.10+
-- Google AI API key (Gemini)
+- Groq API key
 
 ## Setup
 
@@ -37,10 +37,10 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```
-GOOGLE_STUDIO_API_KEY=your_api_key_here
+GROQ_API_KEY=your_api_key_here
 ```
 
-Get an API key from [Google AI Studio](https://aistudio.google.com).
+Get an API key from [Groq Console](https://console.groq.com).
 
 ### 4. Scrape and chunk content (first-time setup)
 
@@ -87,7 +87,7 @@ data/
 2. **Chunking**: Splits content into ~1000-token paragraphs using tiktoken
 3. **Embedding**: Generates embeddings with `all-MiniLM-L6-v2` (sentence-transformers) and stores in ChromaDB
 4. **Retrieval**: On query, embeds the question and retrieves top-k relevant chunks from ChromaDB
-5. **Generation**: Sends retrieved context + question to Gemini with a system prompt instructing it to answer only from the provided context
+5. **Generation**: Sends retrieved context + question to Groq with a system prompt instructing it to answer only from the provided context
 
 ## Deployment
 
@@ -97,4 +97,4 @@ Deploy to Streamlit Community Cloud:
 2. Go to [streamlit.io/cloud](https://streamlit.io/cloud)
 3. Connect your repo and deploy
 
-Note: Set `GOOGLE_STUDIO_API_KEY` as a secrets environment variable in Streamlit Cloud.
+Note: Set `GROQ_API_KEY` as a secrets environment variable in Streamlit Cloud.

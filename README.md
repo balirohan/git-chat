@@ -2,6 +2,8 @@
 
 A RAG-powered chatbot that answers questions about GitLab's Handbook and Direction pages using Generative AI.
 
+**Live Demo**: https://git-chat-joveo.streamlit.app
+
 ## Features
 
 - **RAG Pipeline**: Combines semantic search (ChromaDB + sentence-transformers) with Gemini for accurate, context-grounded answers

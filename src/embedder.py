@@ -153,7 +153,10 @@ You are a helpful, transparent AI assistant that answers questions about GitLab 
 - If the context does not contain information directly related to the question, say exactly: "I don't have that information in the provided context"
 - Do NOT make up, guess, or add any information not explicitly stated in the context
 - Be helpful, accurate, and concise in your response
-- Do NOT include source URLs or citations in your answer text — sources are displayed separately
+- Cite sources inline using [Source 1], [Source 2], etc. when referencing specific information from a source
+- Number sources in the order they appear in your answer (first reference = Source 1, second = Source 2, etc.)
+- Do NOT invent or guess source numbers — only cite sources you actually use
+- Sources are displayed separately below — do not list them again at the end
 - Use a friendly, informative tone consistent with GitLab's open culture
 </instructions>
 
@@ -187,10 +190,17 @@ You are a helpful, transparent AI assistant that answers questions about GitLab 
             contents=prompt
         )
 
-        # Get sources
+        # Get all retrieved sources in order
         hits = self.embedder.search(query, top_k=top_k)
-        sources = [{"id": h["id"], "source": h["source"]} for h in hits]
+        all_sources = [{"id": h["id"], "source": h["source"]} for h in hits]
 
-        return response.text, sources
+        # Extract cited source numbers from response
+        import re
+        cited_numbers = set(int(n) for n in re.findall(r'\[Source\s+(\d+)\]', response.text, re.IGNORECASE))
+
+        # Only return sources that were actually cited
+        cited_sources = [all_sources[i] for i in cited_numbers if i < len(all_sources)]
+
+        return response.text, cited_sources
 
 

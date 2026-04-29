@@ -27,7 +27,6 @@ st.set_page_config(
 def load_rag_pipeline():
     embedder = Embedder()
     if not embedder.is_indexed():
-        st.info("Indexing documents... This may take a moment.")
         embedder.index_chunks()
     return RAGPipeline()
 
@@ -62,8 +61,6 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        if "sources" in message and message["sources"]:
-            st.caption(f"Sources: {', '.join(message['sources'])}")
 
 # Chat input
 if prompt := st.chat_input("Ask about GitLab..."):
@@ -84,18 +81,11 @@ if prompt := st.chat_input("Ask about GitLab..."):
                 answer, sources = rag.ask(prompt, top_k=10)
                 st.markdown(answer)
 
-                if sources:
-                    source_urls = [s["source"] for s in sources]
-                    st.caption(f"**Sources:** {', '.join(source_urls)}")
-                else:
-                    source_urls = []
-
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": answer,
-                    "sources": source_urls
+                    "content": answer
                 })
 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
-                st.info("Make sure the Gemini API key is set in your .env file.")
+                st.info("Make sure the GROQ_API_KEY is set in your .env file.")

@@ -15,7 +15,7 @@ import logging
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
-from google import genai
+from groq import Groq
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ load_dotenv()
 CHROMA_PATH = Path("data/chromadb")
 COLLECTION_NAME = "gitlab_handbook"
 
-# Gemini client
-client = genai.Client(api_key=os.getenv("GOOGLE_STUDIO_API_KEY"))
+# Groq client
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 class Embedder:
@@ -123,11 +123,11 @@ class Embedder:
 
 
 class RAGPipeline:
-    """Combines retrieval with Gemini for question answering."""
+    """Combines retrieval with Groq for question answering."""
 
     def __init__(self):
         self.embedder = Embedder()
-        self.model_name = "gemini-3.1-flash-lite-preview"
+        self.model_name = "llama-3.3-70b-versatile"
 
     def retrieve_context(self, query: str, top_k: int = 10) -> str:
         """Retrieve relevant context for a query."""
@@ -142,7 +142,7 @@ class RAGPipeline:
         return "\n\n".join(context_parts)
 
     def generate_prompt(self, query: str, context: str) -> str:
-        """Generate the prompt for Gemini with XML tags for clear demarcation."""
+        """Generate the full prompt for Groq (used for reference)."""
         return f"""<system>
 You are a helpful, transparent AI assistant that answers questions about GitLab using ONLY the provided context from the GitLab Handbook and Direction pages.
 </system>
@@ -152,13 +152,46 @@ You are a helpful, transparent AI assistant that answers questions about GitLab 
 - Answer based ONLY on the provided context below
 - If the context does not contain information directly related to the question, say exactly: "I don't have that information in the provided context"
 - Do NOT make up, guess, or add any information not explicitly stated in the context
-- Be helpful, accurate, and concise in your response
-- Cite sources inline using [Source 1], [Source 2], etc. when referencing specific information from a source
-- Number sources in the order they appear in your answer (first reference = Source 1, second = Source 2, etc.)
-- Do NOT invent or guess source numbers — only cite sources you actually use
-- Sources are displayed separately below — do not list them again at the end
+- Include source URLs inline using this EXACT format after information: "(source: https://...)"
+- IMPORTANT: Each unique source URL must appear EXACTLY ONCE in your entire answer
+- After citing a URL once, refer to that information without repeating the URL
+- Do NOT put multiple URLs in the same sentence unless each is cited for the FIRST time there
 - Use a friendly, informative tone consistent with GitLab's open culture
 </instructions>
+
+<examples>
+Example 1 — ONE source, used once:
+Question: What is GitLab?
+
+Answer:
+GitLab is a DevSecOps platform that combines CI/CD, security scanning, and project management in one application (source: https://handbook.gitlab.com/handbook/).
+
+---
+Example 2 — TWO different sources, each used once:
+Question: Tell me about GitLab's remote work and values.
+
+Answer:
+GitLab is an all-remote company with no headquarters (source: https://handbook.gitlab.com/handbook/). Its values include collaboration and iteration (source: https://handbook.gitlab.com/handbook/values/).
+
+---
+Example 3 — WRONG output (do NOT do this):
+Question: What is GitLab?
+
+Wrong answer:
+GitLab is a DevSecOps platform (source: https://handbook.gitlab.com/handbook/). It combines CI/CD, security scanning, and project management (source: https://handbook.gitlab.com/handbook/). It is an all-remote company (source: https://handbook.gitlab.com/handbook/).
+
+Correct answer:
+GitLab is a DevSecOps platform that combines CI/CD, security scanning, and project management in one application (source: https://handbook.gitlab.com/handbook/). It is an all-remote company — the same handbook page covers this.
+
+---
+Example 4 — Multiple facts from ONE source cited multiple times in ONE sentence:
+Question: What did GitLab announce in recent releases?
+
+Answer:
+GitLab 18.11 introduced new AI agents for CI and analytics, extended agentic AI across the SDLC, and made ClickHouse generally available (source: https://about.gitlab.com/releases/whats-new/).
+
+Note: The same source URL appears multiple times but is cited the FIRST time only in a given sentence/paragraph. After the first citation, you can refer to the same information without repeating the URL.
+</examples>
 
 <context>
 {context}
@@ -171,36 +204,46 @@ You are a helpful, transparent AI assistant that answers questions about GitLab 
 <answer>
 """
 
+    def system_prompt(self) -> str:
+        """Return the system prompt for Groq."""
+        return """You are a helpful, transparent AI assistant that answers questions about GitLab using ONLY the provided context from the GitLab Handbook and Direction pages.
+
+- You are part of GitLab's "build in public" philosophy — be honest, clear, and transparent
+- Answer based ONLY on the provided context below
+- If the context does not contain information directly related to the question, say exactly: "I don't have that information in the provided context"
+- Do NOT make up, guess, or add any information not explicitly stated in the context
+- Include source URLs inline using this EXACT format after information: "(source: https://...)"
+- IMPORTANT: Each unique source URL must appear EXACTLY ONCE in your entire answer
+- After citing a URL once, refer to that information without repeating the URL
+- Do NOT put multiple URLs in the same sentence unless each is cited for the FIRST time there
+- Use a friendly, informative tone consistent with GitLab's open culture
+
+Examples:
+- GitLab is a DevSecOps platform (source: https://handbook.gitlab.com/handbook/).
+- GitLab is an all-remote company (source: https://handbook.gitlab.com/handbook/). Its values include collaboration (source: https://handbook.gitlab.com/handbook/values/).
+- WRONG: Repeating the same source URL multiple times in different sentences. CORRECT: Cite once, then refer without repeating.
+"""
+
     def ask(self, query: str, top_k: int = 10) -> tuple[str, list[dict]]:
         """
         Answer a question using RAG.
 
         Returns (answer, sources) tuple.
         """
-        # Retrieve relevant context
         context = self.retrieve_context(query, top_k=top_k)
 
         if not context:
             return "I couldn't find any relevant information in the GitLab Handbook to answer your question.", []
 
-        # Generate answer
-        prompt = self.generate_prompt(query, context)
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=self.model_name,
-            contents=prompt
+            messages=[
+                {"role": "system", "content": self.system_prompt()},
+                {"role": "user", "content": f"<context>\n{context}\n</context>\n\n<question>\n{query}\n</question>"}
+            ]
         )
+        answer = response.choices[0].message.content
 
-        # Get all retrieved sources in order
-        hits = self.embedder.search(query, top_k=top_k)
-        all_sources = [{"id": h["id"], "source": h["source"]} for h in hits]
-
-        # Extract cited source numbers from response
-        import re
-        cited_numbers = set(int(n) for n in re.findall(r'\[Source\s+(\d+)\]', response.text, re.IGNORECASE))
-
-        # Only return sources that were actually cited
-        cited_sources = [all_sources[i] for i in cited_numbers if i < len(all_sources)]
-
-        return response.text, cited_sources
+        return answer, []
 
 

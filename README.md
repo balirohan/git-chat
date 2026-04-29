@@ -109,7 +109,7 @@ Note: Set `GROQ_API_KEY` as a secrets environment variable in Streamlit Cloud.
 
 1. **Deeper scraping**: The current scraper only goes 2 levels deep. A recursive crawler that follows handbook sub-sections would provide richer context for nuanced queries, making this POC feel like a production ready application, minus the simple streamlit UI :)
 
-2. **Query expansion/reranking**: I'd ask Groq to rewrite the user's query into 3 different versions and use all of them to make the semantic search more robust and instead of just retrieving top-k by cosine similarity, I'd use a two-stage approach — retrieve 20 chunks, then use Gemini to pick the 5 most relevant. This handles vague queries better.
+2. **Query expansion/reranking**: I'd ask Groq to rewrite the user's query into 3 different versions and use all of them to make the semantic search more robust and instead of just retrieving top-k by cosine similarity, I'd use a two-stage approach: retrieve 20 chunks, then use Gemini to pick the 5 most relevant. This handles vague queries better.
 
 3. **Streaming responses**: Adding streaming would improve perceived latency for longer answers. (Used only in real world scenarios)
 
